@@ -1,27 +1,29 @@
-import socket, time
+import subprocess
+import platform
 
-def sendicmp(target): 
-    # AF_NET       - create a layer3 socket
-    # SOCK_RAW     - instead of layer4, start crafting a raw socket
-    # IPPROTO_ICMP - doesnt craft the icmp packet, tell the kernal where to target the raw sock, and to mark the protocol as '1'
-    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-    # 08 = type icmp request
-    # 00 = 
-    packet = b'\x08\x00\00\00\x00\x00\x00\x00'
+# Constants
+OS_NAME = platform.system()
 
-    while True:
-        time.sleep(1)
-        print(f'-> {packet}')
-        s.sendto(packet, (target, 0))
+def run_traceroute(host):
+    """
+    Runs traceroute command
+    Args:
+        host (str): destination host or IP
+    Returns:
+        str: raw output of traceroute command
+    """
+    cmd = ["tracert", host] if OS_NAME == 'Windows' else ["traceroute", "-q", "1",  host]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.stdout
 
+def parse_traceroute(output):
+    """
+    Parses and returns trace route output
+    Args:
+        output (str): raw traceroute output
+    """
+    return output 
 
-def checksum(data):
-    # padding if odd length
-    if len(data) % 2 == 1:
-        data += b'\x00'
-
-    total = 0
-    for i in range(0, len(data), 2):
-        word = (data[i] << 8) + data[i+1]
-
-sendicmp("192.168.1.1")
+def traceroute(host):
+    output = run_traceroute(host)
+    return parse_traceroute(output)
