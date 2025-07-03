@@ -21,4 +21,4 @@ def find_mac_address(ip):
 
 
 
-scan("192.168.1.254")
+find_mac_address("192.168.1.254")
