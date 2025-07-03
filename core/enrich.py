@@ -1,18 +1,21 @@
 import scapy.all as scapy
 
-
-def scan(ip):
+def find_mac_address(ip):
+    """
+    Sends ARP packet to destination IP
+    Args:
+        ip (str): destination IP
+    Returns:
+        str: raw output of MAC address
+    """
     packet1 = scapy.ARP(pdst=ip)
     etherpacket = scapy.Ether(dst = 'ff:ff:ff:ff:ff:ff')
 
     broadcast_packet = etherpacket/packet1
-    ans, unans = scapy.srp(broadcast_packet, timeout=10)
-    src_mac_address = (ans[0][1]).src
-    dst_mac_address = (ans[0][1]).dst
-    ether_type = (ans[0][1]).type
+    ans, unans = scapy.srp(broadcast_packet, timeout=3)
 
-    print(f'src: {src_mac_address}\ndst: {dst_mac_address}\ntype: {ether_type}')
-    print(ans.summary())
+    src_mac_address = (ans[0][1]).src
+    return(src_mac_address)
 
 
 
