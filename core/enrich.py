@@ -13,13 +13,15 @@ def find_mac_address(ip):
     target_hardware_address = scapy.Ether(dst = 'ff:ff:ff:ff:ff:ff')
 
     broadcast_packet = target_hardware_address/traget_ip_address
-    ans = scapy.srp(broadcast_packet, timeout=1)
+    ans, unans = scapy.srp(broadcast_packet, timeout=0.1)
 
-    if(ans is None):
+    if unans:
         return None
+    else:
+        src_mac_address = (ans[0][1]).src
+        return(src_mac_address)
     
-    src_mac_address = (ans[0][0][1]).src
-    return(src_mac_address)
+
 
 
 def scan_ports(ip):
@@ -54,7 +56,7 @@ def scan_ports(ip):
 
     for port in PORTS:
         tcp_layer = scapy.TCP(sport=12345, dport=port, seq=1000)
-        response = scapy.sr1(ip_layer/tcp_layer, timeout=1)
+        response = scapy.sr1(ip_layer/tcp_layer, timeout=0.1)
         if response is None:
             replies.update({port : 'filtered/closed'})
         else:

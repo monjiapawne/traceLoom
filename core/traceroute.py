@@ -87,3 +87,5 @@ def traceroute(host):
     #total_hops = maxhops(host)
     output = run_traceroute(host)
     return parse_traceroute(output)
+
+print(traceroute("8.8.8.8"))
