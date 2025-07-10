@@ -1,11 +1,15 @@
 import subprocess
 import platform
-
+import time
 
 # Constants
 OS_NAME = platform.system()
 
 def maxhops(host):
+    """
+    WIP
+    Function to get total hops, could be useful for progress bar..
+    """
     if OS_NAME == 'Windows':
         cmd = ['ping']
 
@@ -23,20 +27,47 @@ def windows_customtracert(host):
     ttl = 1
     while True:
         cmd = ['ping', '-n', '1', '-i', str(ttl), '-w', '200', host]  # ping -n 1 -i 2 -w 200 8.8.8.8
+        start = time.time()
         result = subprocess.run(cmd, capture_output=True, text=True)
+        end = time.time()
+        latency = f'{round((end - start) * 1000, 3)}ms'
 
         try:
             line = next(l for l in result.stdout.splitlines() if "from" in l.lower())
-            ip = line.split("from ")[1].split(":")[0]
-            results.append(ip)
-            if ip == host:
+            hop_ip = line.split("from ")[1].split(":")[0]
+            results.append((hop_ip, latency))
+            if hop_ip == host:
                 return results
                 break
 
         except (IndexError, StopIteration):
-            results.append("*")
+            results.append("*, None")
 
         ttl += 1
+
+
+def parse_traceroute(output):
+    """
+    -> Linux only !
+    Parses and returns trace route output
+    Args:
+        output (str): raw traceroute output
+    """
+    results = []
+    for hops in output.splitlines()[1:]:
+        if '*' in hops:
+            results.append(('*', None))  # for null reponses
+        elif '(' in hops and ')' in hops:
+            # parse ip
+            hop_ip = hops.split('(')[1].split(')')[0]
+            # parse latency
+            parts = hops.split()
+            for i, p in enumerate(parts):
+                if p.endswith('ms'):
+                    latency = float(parts[i - 1])
+                    results.append((hop_ip, latency))
+                    break
+    return results
 
 def run_traceroute(host):
     """
@@ -49,43 +80,12 @@ def run_traceroute(host):
     if OS_NAME == 'Windows':
         results = windows_customtracert(host)
         return results
-    else:
+    if OS_NAME == 'Linux':
         cmd = ["traceroute", "-q", "1",  host]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        return result.stdout
-
-
-
-def parse_traceroute(output):
-    """
-    Parses and returns trace route output
-    Args:
-        output (str): raw traceroute output
-    """
-    results = []
-    if OS_NAME == 'Windows':
-        print("Windows:")  # windows will already be parsed will remove
-        return output
-    if OS_NAME == 'Linux':
-        for hops in output.splitlines()[1:]:
-            if '*' in hops:
-                results.append(('*', None))  # for null reponses
-            elif '(' in hops and ')' in hops:
-                # parse ip
-                hop_ip = hops.split('(')[1].split(')')[0]
-                # parse latency
-                parts = hops.split()
-                for i, p in enumerate(parts):
-                    if p.endswith('ms'):
-                        latency = float(parts[i - 1])
-                        results.append((hop_ip, latency))
-                        break
-        return results
-    return ""
+        return parse_traceroute(result.stdout)
 
 def traceroute(host):
     #total_hops = maxhops(host)
     output = run_traceroute(host)
-    return parse_traceroute(output)
-
-print(traceroute("8.8.8.8"))
+    return output
