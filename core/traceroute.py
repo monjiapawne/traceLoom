@@ -30,7 +30,7 @@ def windows_customtracert(host):
         start = time.time()
         result = subprocess.run(cmd, capture_output=True, text=True)
         end = time.time()
-        latency = f'{round((end - start) * 1000, 3)}ms'
+        latency = f'{round((end - start) * 1000, 3)}'
 
         try:
             line = next(l for l in result.stdout.splitlines() if "from" in l.lower())
