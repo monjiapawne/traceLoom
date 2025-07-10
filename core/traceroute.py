@@ -1,36 +1,21 @@
 import subprocess
 import platform
 import time
+from typing import List, Tuple, Optional
 
 # Constants
 OS_NAME = platform.system()
+MAX_HOPS=30
 
-def maxhops(host):
-    """
-    WIP
-    Function to get total hops, could be useful for progress bar..
-    """
-    if OS_NAME == 'Windows':
-        cmd = ['ping']
-
-def windows_customtracert(host):
-    """
-    Speedy fast work around to manually tracert, as windows is slow and not customizable
-    Args:
-        host (str): destination host or IP
-    Returns:
-        list: list of ips in path
-    Todo:
-        needs latencys, will manually trace with time, as failed ttl don't return latency in windows
-    """
+def _run_traceroute_windows(host):
     results = []
     ttl = 1
-    while True:
+    while ttl <= MAX_HOPS:
         cmd = ['ping', '-n', '1', '-i', str(ttl), '-w', '200', host]  # ping -n 1 -i 2 -w 200 8.8.8.8
         start = time.time()
         result = subprocess.run(cmd, capture_output=True, text=True)
         end = time.time()
-        latency = f'{round((end - start) * 1000, 3)}'
+        latency = round((end - start) * 1000, 3)
 
         try:
             line = next(l for l in result.stdout.splitlines() if "from" in l.lower())
@@ -38,21 +23,17 @@ def windows_customtracert(host):
             results.append((hop_ip, latency))
             if hop_ip == host:
                 return results
-                break
 
         except (IndexError, StopIteration):
-            results.append("*, None")
+            results.append(("*", None))
 
         ttl += 1
 
+def _run_traceroute_unix(host):
+    cmd = ["traceroute", "-q", "1",  host]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    output = result.stdout
 
-def parse_traceroute(output):
-    """
-    -> Linux only !
-    Parses and returns trace route output
-    Args:
-        output (str): raw traceroute output
-    """
     results = []
     for hops in output.splitlines()[1:]:
         if '*' in hops:
@@ -69,23 +50,11 @@ def parse_traceroute(output):
                     break
     return results
 
-def run_traceroute(host):
-    """
-    Runs traceroute command
-    Args:
-        host (str): destination host or IP
-    Returns:
-        str: raw output of traceroute command
-    """
+def traceroute(host: str) -> List[Tuple[str, Optional[float]]]:
+    """Runs and parses traceroute based on OS, returns list of hops and latency"""
     if OS_NAME == 'Windows':
-        results = windows_customtracert(host)
-        return results
-    if OS_NAME == 'Linux':
-        cmd = ["traceroute", "-q", "1",  host]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        return parse_traceroute(result.stdout)
-
-def traceroute(host):
-    #total_hops = maxhops(host)
-    output = run_traceroute(host)
-    return output
+        return _run_traceroute_windows(host)
+    elif OS_NAME == 'Linux':
+        return _run_traceroute_unix(host)
+    else:
+        raise NotImplementedError(f"Unsupported OS: {OS_NAME}")
