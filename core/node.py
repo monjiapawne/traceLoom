@@ -1,4 +1,4 @@
-class hop:
+class Node:
     def __init__(self, ip=None, mac_address=None, ports=None, latency=None):
         self.ip= ip
         self.mac_address = mac_address
