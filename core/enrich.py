@@ -3,7 +3,7 @@ import psutil
 
 from node import Node
 
-ip_list = [('192.168.1.254', 14.553), ('107.215.132.1', 12.96), ('71.151.37.28', 11.504), ('64.125.25.42', 34.358), ('64.125.41.223', 36.35), ('64.74.203.34', 37.632), ('170.249.244.66', 36.41), ('108.160.145.12', 36.982)]
+ip_list = [('192.168.1.254', 9.316), ('107.215.132.1', 8.375), ('71.151.37.28', 8.476), ('*', None), ('*', None), ('66.198.27.4', 12.604), ('63.243.129.56', 20.759), ('66.110.48.14', 22.648), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('143.244.220.150', 32.641)]
 node_list = []
 
 def create_node_list(ip_list):
@@ -29,7 +29,7 @@ def find_mac_address(node_list):
         target_hardware_address = scapy.Ether(dst = 'ff:ff:ff:ff:ff:ff')
 
         broadcast_packet = target_hardware_address/target_ip_address
-        ans, unans = scapy.srp(broadcast_packet, timeout=0.1, verbose=0)
+        ans, unans = scapy.srp(broadcast_packet, timeout=0.05, verbose=0)
 
         if ans:
             src_mac_address = (ans[0][1]).src
@@ -52,7 +52,9 @@ def scan_ports(node_list):
         80:     'HTTP',
         110:    'POP3',
         111:    'rpcbind',
-        443:    'HTTPS'
+        139:    'netbios-ssn',
+        443:    'HTTPS',
+        445:    'microsoft-ds'
     }
 
     for node in node_list:
@@ -68,7 +70,7 @@ def scan_ports(node_list):
             ip_layer = scapy.IP(src=my_ip, dst=destination_ip)
             for port in PORTS:
                 tcp_layer = scapy.TCP(sport=12345, dport=port, seq=1000)
-                response = scapy.sr1(ip_layer/tcp_layer, timeout=0.1, verbose=0)
+                response = scapy.sr1(ip_layer/tcp_layer, timeout=0.05, verbose=0)
 
                 if response is None:
                     replies.update({port : 'filtered'})
