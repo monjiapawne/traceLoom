@@ -1,10 +1,7 @@
 import scapy.all as scapy
 import psutil
 
-from node import Node
-
-ip_list = [('192.168.1.254', 9.316), ('107.215.132.1', 8.375), ('71.151.37.28', 8.476), ('*', None), ('*', None), ('66.198.27.4', 12.604), ('63.243.129.56', 20.759), ('66.110.48.14', 22.648), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('*', None), ('143.244.220.150', 32.641)]
-node_list = []
+from core.node import Node
 
 def create_node_list(ip_list):
     """
@@ -14,6 +11,8 @@ def create_node_list(ip_list):
     Returns:
         List(Node): List of Nodes with IP field filled
     """
+    node_list = []
+
     for ip, latency in ip_list:
         node_list.append(Node(ip=ip, latency=latency))
     return node_list
@@ -34,7 +33,7 @@ def find_mac_address(node_list):
         if ans:
             src_mac_address = (ans[0][1]).src
             node.mac_address = src_mac_address
-    
+    return node_list
 
 def scan_ports(node_list):
     """
@@ -43,18 +42,11 @@ def scan_ports(node_list):
         node_list (List(Node)): List of Nodes to scan and update ports
     """
     PORTS = {
-        20 :    'FTP', 
-        21:     'SFTP',
         22:     "SSH",
-        23:     'Telnet',
-        25:     'SMTP',
+        23:     "SSH",
         53:     'DNS',
         80:     'HTTP',
-        110:    'POP3',
-        111:    'rpcbind',
-        139:    'netbios-ssn',
         443:    'HTTPS',
-        445:    'microsoft-ds'
     }
 
     for node in node_list:
@@ -82,9 +74,4 @@ def scan_ports(node_list):
                             replies.update({port : 'closed'})
             
             node.ports = replies
-
-create_node_list(ip_list)
-find_mac_address(node_list)
-scan_ports(node_list)
-for node in node_list:
-    print(node)
+    return node_list
