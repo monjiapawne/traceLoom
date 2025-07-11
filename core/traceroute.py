@@ -2,10 +2,20 @@ import subprocess
 import platform
 import time
 from typing import List, Tuple, Optional
+import socket
+import ipaddress
+import logging
 
 # Constants
 OS_NAME = platform.system()
 MAX_HOPS=30
+
+def _stantize_host(host):
+    try:
+        ipaddress.IPv4Address(host)
+        return host
+    except ValueError:
+        return socket.gethostbyname(host)
 
 def _run_traceroute_windows(host):
     results = []
@@ -52,9 +62,15 @@ def _run_traceroute_unix(host):
 
 def traceroute(host: str) -> List[Tuple[str, Optional[float]]]:
     """Runs and parses traceroute based on OS, returns list of hops and latency"""
+    host = _stantize_host(host)
+    logging.info(f"Running traceroute for: {host}")
+    logging.info(f"OS Detected: {OS_NAME}")
+    
     if OS_NAME == 'Windows':
-        return _run_traceroute_windows(host)
+        route_list = _run_traceroute_windows(host)
     elif OS_NAME == 'Linux':
-        return _run_traceroute_unix(host)
+        route_list = _run_traceroute_unix(host)
     else:
         raise NotImplementedError(f"Unsupported OS: {OS_NAME}")
+
+    logging.info(f"Route list\n----------------------\n{route_list}\n----------------------")
