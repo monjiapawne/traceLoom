@@ -10,7 +10,7 @@ import re
 # Constants
 OS_NAME = platform.system()
 MAX_HOPS = 30
-PING_TIMEOUT="0.05"  # seconds eg: 0.04 s = 40 ms
+PING_TIMEOUT=0.05  # seconds eg: 0.04 s = 40 ms
 
 def _sanitize_host(host):
     try:
