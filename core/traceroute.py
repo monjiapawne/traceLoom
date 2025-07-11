@@ -74,3 +74,4 @@ def traceroute(host: str) -> List[Tuple[str, Optional[float]]]:
         raise NotImplementedError(f"Unsupported OS: {OS_NAME}")
 
     logging.info(f"Route list\n----------------------\n{route_list}\n----------------------")
+    return route_list
