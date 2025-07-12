@@ -1,5 +1,4 @@
 import scapy.all as scapy
-import psutil
 
 from core.node import Node
 
@@ -41,6 +40,8 @@ def scan_ports(node_list):
     Args:
         node_list (List(Node)): List of Nodes to scan and update ports
     """
+    my_ip = scapy.get_if_addr(scapy.conf.iface)
+    
     PORTS = {
         22:     "SSH",
         23:     "SSH",
@@ -53,12 +54,6 @@ def scan_ports(node_list):
         if node.ip != '*':
             replies = {}
             destination_ip = node.ip
-            nics = psutil.net_if_addrs()
-            nic_keys = list(nics.keys())
-            nic = nic_keys[0]
-            
-            my_ip = scapy.get_if_addr(scapy.conf.iface)
-            my_ip = scapy.get_if_addr(nic)
             ip_layer = scapy.IP(src=my_ip, dst=destination_ip)
             for port in PORTS:
                 tcp_layer = scapy.TCP(sport=12345, dport=port, seq=1000)
