@@ -60,6 +60,7 @@ def _run_traceroute(host):
 def traceroute(host: str) -> List[Tuple[str, Optional[float]]]:
     """Runs and parses traceroute based on OS, returns list of hops and latency"""
     host = _sanitize_host(host)
+    
     logging.info(f"Running traceroute for: {host}")
     logging.info(f"OS Detected: {OS_NAME}")
     

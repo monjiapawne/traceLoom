@@ -44,7 +44,7 @@ def scan_ports(node_list):
     
     PORTS = {
         22:     "SSH",
-        23:     "SSH",
+        23:     "TELNET",
         53:     'DNS',
         80:     'HTTP',
         443:    'HTTPS',
