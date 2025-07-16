@@ -27,7 +27,7 @@ def main(args):
     logging.basicConfig(level=getattr(logging, (args.logging).upper()), format='[%(levelname)s] %(message)s')
     
     # run trace route
-    hops = traceroute.traceroute(args.target)
+    hops = traceroute.run_traceroute(args.target)
     node_list = enrich.create_node_list(hops)
 
     # optional enrichments
