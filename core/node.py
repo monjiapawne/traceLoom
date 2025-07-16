@@ -7,4 +7,4 @@ class Node:
 
     def __str__(self) -> str:
         latency = f"{self.latency:.1f} ms" if self.latency is not None else "-"
-        return f"{self.ip}  {latency} {self.mac_address or '-':<17} {self.ports}"
+        return f"{self.ip:<15}  {latency:<7}  {self.mac_address or '-':<17}  {self.ports}"
