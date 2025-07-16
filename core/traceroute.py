@@ -1,4 +1,4 @@
-from scapy.all import IP, ICMP, sr
+from scapy.all import IP, ICMP, sr, socket
 from typing import List, Tuple, Any
 
 def run_traceroute(target: str) -> list[tuple[str, str | None]]:
@@ -8,6 +8,7 @@ def run_traceroute(target: str) -> list[tuple[str, str | None]]:
     timeout     = 0.2
     responseIP  = ''
     route: list[tuple[str, str | None]] = []
+    target = socket.gethostbyname(target)
     
     while ttl <= MAX_HOPS and target != responseIP:
         packet: Any = IP(dst=target, ttl=ttl) / ICMP()
