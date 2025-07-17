@@ -1,10 +1,21 @@
+import json
+
 class Node:
-    def __init__(self, ip=None, mac_address=None, ports=None, latency=None) -> None:
+    def __init__(self, ip=None, mac_address=None, ports=None, latency=None, dns=None) -> None:
         self.ip: str | None = ip
-        self.latency: float | None = latency
+        self.latency = f"{latency:.1f} ms" if latency is not None else None
         self.mac_address: str | None = mac_address
         self.ports: dict[int, str] | None = ports
+        self.dns: str | None = dns
 
     def __str__(self) -> str:
-        latency = f"{self.latency:.1f} ms" if self.latency is not None else "-"
-        return f"{self.ip:<15}  {latency:<7}  {self.mac_address or '-':<17}  {self.ports}"
+        return f"{self.ip:<15}  {self.latency or '*':<7}  {self.mac_address or '*':<17} {self.dns or '*':<5} {self.ports}"
+    
+    def to_dict(self) -> dict:
+        return {
+            "ip": self.ip,
+            "latency": self.latency,
+            "mac_address": self.mac_address,
+            "dns": self.dns,
+            "ports": self.ports,
+        }
