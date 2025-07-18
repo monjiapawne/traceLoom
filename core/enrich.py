@@ -1,5 +1,5 @@
 import scapy.all as scapy
-import socket, logging, time, subprocess, shutil
+import socket, logging, time, subprocess, shutil, sys
 
 from core.node import Node
 
@@ -17,12 +17,10 @@ def create_node_list(ip_list):
         node_list.append(Node(ip=ip, latency=latency))
     return node_list
 
-
 def nslookup(ip: str) -> str | None:
     if not shutil.which('nslookup'):
-        logging.ERROR('Missing command :nslookup')
-        sys.exit(1)
-    
+        raise RuntimeError('Missing command :nslookup')
+        
     try:
         result = subprocess.run(
             ['nslookup', ip],
@@ -33,33 +31,39 @@ def nslookup(ip: str) -> str | None:
         )
         output = result.stdout.lower().splitlines()
         for line in output:
-            # win
-            if "name:" in line:
-                dns = line.split(':')[1].strip()
-                return dns
-    except:
-        print('error')
+            if "name:" in line:  # Windows
+                return line.split(':', 1)[1].strip()
+            if "name =" in line: # Linux
+                return line.split('=', 1)[1].strip()
+    except Exception as e:
+        logging.debug(f"nslookup error: {e}")
+    return None
 
-def reverse_dns_lookup(node_list: list[str]) -> list[str]:
-    s = time.time()
+def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
+    start = time.time()
     logging.info('[ ] running reverse_dns_lookup')
     count = 0
+    
     for node in node_list:
-        if node.ip != "*":
-            try:
-                logging.debug(f"resolving {node.ip}")
-                node.dns = nslookup(node.ip)
-                if node.dns: count += 1
-            except Exception:
-                node.dns = None
+        if node.ip == "*":
+            continue
+        logging.debug(f"resolving {node.ip}")
+        try:
+            node.dns = nslookup(node.ip)
+            if node.dns: 
+                count += 1
+        except RuntimeError as e:
+            logging.error(e)
+            sys.exit(1)
+        except Exception:
+            node.dns = None
 
-    e = time.time()
+    duration = time.time() - start
     logging.info(f'[i] DNS Responses:'.ljust(33) + f'{count}')
-    logging.info(f"[+] reverse_dns_lookup complete: {e - s:.2f} s")
+    logging.info(f"[+] reverse_dns_lookup complete: {duration:.2f} s")
     return node_list
 
-
-def find_mac_address(node_list):
+def find_mac_address(node_list: list[Node]) -> list[Node]:
     """Sends ARP packet to destination IP"""
     
     logging.info('[ ] running find_mac_address')
@@ -79,7 +83,7 @@ def find_mac_address(node_list):
             node.mac_address = src_mac_address
     return node_list
 
-def scan_ports(node_list):
+def scan_ports(node_list: list[Node]) -> list[Node]:
     """
     Scans popular TCP ports of a given IP and returns dict of their status
     Args:

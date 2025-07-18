@@ -5,12 +5,13 @@ import logging, time
 def run_traceroute(target: str) -> list[tuple[str, float | None]]:   
     count = 0
     logging.info(f'[ ] running traceroute to:'.ljust(33) + f'{target}')
-    s = time.time()
+    start = time.time()
+    
     MAX_HOPS    = 40
     ttl         = 1
     timeout     = 0.02
     responseIP  = ''
-    route: list[tuple[str, str | None]] = []
+    route       = []
     
     try:
         target = socket.gethostbyname(target)
@@ -37,8 +38,8 @@ def run_traceroute(target: str) -> list[tuple[str, float | None]]:
 
             ttl += 1
             
-        e = time.time()
-        logging.info(f"[+] traceroute complete:".ljust(31) + f"{(e - s):>6.2f} s")
+        duration = time.time() - start
+        logging.info(f"[+] traceroute complete:".ljust(31) + f"{duration:>6.2f} s")
         logging.info(f'[i] ICMP responses:'.ljust(33) + f'{count}')
         return route
     
