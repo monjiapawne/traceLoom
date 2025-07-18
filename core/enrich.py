@@ -17,6 +17,7 @@ def create_node_list(ip_list):
         node_list.append(Node(ip=ip, latency=latency))
     return node_list
 
+# Helper functions
 def nslookup(ip: str) -> str | None:
     if not shutil.which('nslookup'):
         raise RuntimeError('Missing command :nslookup')
@@ -39,6 +40,7 @@ def nslookup(ip: str) -> str | None:
         logging.debug(f"nslookup error: {e}")
     return None
 
+# Core enrichment functions
 def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
     start = time.time()
     logging.info('[ ] running reverse_dns_lookup')
