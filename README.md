@@ -1,17 +1,18 @@
 # traceLoom
 
-**traceLoom** is a python-based traceroute tool that enriches each hop of a route, it provides more context than traditional traceroute.
+**traceLoom** is a Python-based traceroute tool that enriches each hop of a route with additional network context.
 
-## Features
-- Cross platform (Windows/Linux)
-- Enriched hop data (IP, latency, MAC address)
-- Simple CLI interface with logging options  
-  `In progress: GUI rendering`
+## Enrichments
+- Latency  
+- MAC Address  
+- TCP Ports  
+- DNS Records  
 
 ## Usage
 ```bash
-python3 cli.py -t <target|hostname>
+./traceLoom -t <target>
 ```
+
 ## Running from Source
 1. Clone the repository:
    ```bash
