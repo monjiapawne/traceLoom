@@ -43,7 +43,7 @@ def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
     start = time.time()
     logging.info('[ ] running reverse_dns_lookup')
     count = 0
-    
+
     for node in node_list:
         if node.ip == "*":
             continue
@@ -74,13 +74,11 @@ def find_mac_address(node_list: list[Node]) -> list[Node]:
 
         broadcast_packet = target_hardware_address/target_ip_address
         ans, unans = scapy.srp(broadcast_packet, timeout=0.05, verbose=0)
-
-        if ans:
-            if src_mac_address == (ans[0][1]).src:
-                node.mac_address = "LAYER 3"
-                return node_list
-            src_mac_address = (ans[0][1]).src
-            node.mac_address = src_mac_address
+        if not ans:
+            node.mac_address = 'LAYER 3'
+            return node_list
+        src_mac_address = (ans[0][1]).src
+        node.mac_address = src_mac_address
     return node_list
 
 def scan_ports(node_list: list[Node]) -> list[Node]:
