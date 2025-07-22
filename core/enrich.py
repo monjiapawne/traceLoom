@@ -4,7 +4,6 @@ import time
 import subprocess
 import shutil
 import sys
-
 from core.node import Node
 
 
@@ -50,7 +49,7 @@ def nslookup(ip: str) -> str | None:
 # Core enrichment functions
 def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
     start = time.time()
-    logging.info("[ ] running reverse_dns_lookup")
+    logging.info("[-] running reverse_dns_lookup")
     count = 0
 
     for node in node_list:
@@ -68,15 +67,16 @@ def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
             node.dns = None
 
     duration = time.time() - start
-    logging.info("[i] DNS Responses:".ljust(33) + f"{count}")
-    logging.info(f"[+] reverse_dns_lookup complete: {duration:.2f} s")
+    logging.info(" [ ] DNS Responses:".ljust(35) + f"{count}")
+    logging.info(" [ ] reverse_dns_lookup complete: ".ljust(35) + f"{duration:.2f} s")
     return node_list
 
 
 def find_mac_address(node_list: list[Node]) -> list[Node]:
     """Sends ARP packet to destination IP"""
 
-    logging.info("[ ] running find_mac_address")
+    logging.info("[-] running find_mac_address")
+    start = time.time()
     src_mac_address = ""
     for node in node_list:
         target_ip_address = scapy.ARP(pdst=node.ip)
@@ -86,9 +86,11 @@ def find_mac_address(node_list: list[Node]) -> list[Node]:
         ans, unans = scapy.srp(broadcast_packet, timeout=0.05, verbose=0)
         if not ans:
             node.mac_address = "LAYER 3"
-            return node_list
+            break
         src_mac_address = (ans[0][1]).src
         node.mac_address = src_mac_address
+    duration = time.time() - start
+    logging.info(" [ ] find_mac_address complete:".ljust(35) + f"{duration:.2f} s")
     return node_list
 
 
@@ -98,11 +100,13 @@ def scan_ports(node_list: list[Node]) -> list[Node]:
     Args:
         node_list (List(Node)): List of Nodes to scan and update ports
     """
-    logging.info("scanning ports")
+    logging.info("[-] scanning ports")
     my_ip = scapy.get_if_addr(scapy.conf.iface)
 
     PORTS = {22: "SSH", 23: "TELNET", 53: "DNS", 80: "HTTP", 443: "HTTPS"}
 
+    open_port_counter = 0
+    start = time.time()
     for node in node_list:
         if node.ip:
             replies = {}
@@ -120,8 +124,12 @@ def scan_ports(node_list: list[Node]) -> list[Node]:
                     if response["IP"].proto == 6:
                         if response["TCP"].flags == "SA":
                             replies.update({port: "open"})
+                            open_port_counter += 1
                         else:
                             replies.update({port: "closed"})
 
             node.ports = replies
+    duration = time.time() - start
+    logging.info(" [ ] Open Ports:".ljust(35) + f"{open_port_counter}")
+    logging.info(" [ ] port scan complete: ".ljust(35) + f"{duration:.2f} s")
     return node_list

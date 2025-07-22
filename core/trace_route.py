@@ -11,7 +11,7 @@ def run_traceroute(
   ) -> list[tuple[str, float | None]]:
 
     count = 0
-    logging.info("[ ] running traceroute to:".ljust(33) + f"{target}")
+    logging.info("[-] running traceroute to:".ljust(35) + f"{target}")
     start = time.time()
 
     responseIP = ""
@@ -20,7 +20,7 @@ def run_traceroute(
 
     try:
         target = socket.gethostbyname(target)
-        logging.info("[+] resolved:".ljust(33) + f"{target}")
+        logging.info(" [ ] resolved:".ljust(35) + f"{target}")
     except socket.gaierror:
         logging.error(f"failed to resolve {target}")
         return []
@@ -47,8 +47,8 @@ def run_traceroute(
             ttl += 1
 
         duration = time.time() - start
-        logging.info("[+] traceroute complete:".ljust(31) + f"{duration:>6.2f} s")
-        logging.info("[i] ICMP responses:".ljust(33) + f"{count}")
+        logging.info(" [ ] traceroute complete:".ljust(35) + f"{duration:.2f} s")
+        logging.info(" [ ] ICMP responses:".ljust(35) + f"{count}")
         return route
 
     else:

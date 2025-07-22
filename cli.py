@@ -4,7 +4,7 @@ import argparse
 import json
 from dataclasses import dataclass
 from rich.logging import RichHandler
-from core import trace_route, enrich, trace_report
+from core import trace_route, enrich, enrich_nmap, trace_report
 
 
 @dataclass
@@ -33,6 +33,8 @@ def parse_args():
                         help="toggle mac scanning")
     parser.add_argument("--ports", action="store_true",
                         help="toggle port scannning")
+    parser.add_argument("--os", action="store_true",
+                        help="toggle os scannning (requries nmap)")
     parser.add_argument("--all", action="store_true",
                         help="enable all enrichment")
     # Output
@@ -91,6 +93,8 @@ def main():
         node_list = enrich.find_mac_address(node_list)
     if args.ports or args.all:
         node_list = enrich.scan_ports(node_list)
+    if args.os or args.all:
+        node_list = enrich_nmap.get_os_info(node_list)
 
     #  CLI output
     if not args.nocli:
