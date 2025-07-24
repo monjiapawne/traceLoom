@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
 from PIL import Image
+import os
 from tkinter import font as tkfont
 from tkinter import filedialog
 import logging
@@ -126,7 +127,7 @@ class MainUI:
         self.sidebar_ent_target_value = ctk.CTkEntry(self.sidebar_frame_root, placeholder_text="1.2.3.4")
         self.sidebar_ent_target_value.pack(anchor="w", pady=(0, 5))
 
-        ico_star_1 = ctk.CTkImage(light_image=Image.open("resources\\images\\rocket_d.png"), size=(16, 16))
+        ico_star_1 = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "rocket_d.png")), size=(16, 16))
         self.sidebar_btn_run_trace = ctk.CTkButton(
             self.sidebar_frame_options,
             image=ico_star_1,
@@ -193,7 +194,7 @@ class MainUI:
         self.tab_gui_controls.grid_columnconfigure(2, weight=1)
         self.tab_gui_controls.grid_columnconfigure(3, weight=1)
         
-        ico_import_json = ctk.CTkImage(light_image=Image.open("resources\\images\\arrow_d.png"), size=(16, 16))
+        ico_import_json = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "arrow_d.png")), size=(16, 16))
         self.tab_gui_btn_import_json = ctk.CTkButton(
             self.tab_gui_controls,
             text="Import JSON",
@@ -204,9 +205,9 @@ class MainUI:
             hover_color="#4C98D6",
             command=lambda: self.import_trace_file()
         )
-        self.tab_gui_btn_import_json.grid(row=0, column=0, sticky="w")
+        self.tab_gui_btn_import_json.grid(row=0, column=0, sticky="w", padx=(0, 5))
         
-        ico_eye = ctk.CTkImage(light_image=Image.open("resources\\images\\eye_d.png"), size=(16, 16))
+        ico_eye = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "eye_d.png")), size=(16, 16))
         self.tab_gui_btn_toggle_null_render = ctk.CTkButton(
             self.tab_gui_controls,
             text="Hide *",
@@ -217,9 +218,9 @@ class MainUI:
             hover_color="#4C98D6",
             command=self.hide_null_hops
         )
-        self.tab_gui_btn_toggle_null_render.grid(row=0, column=1, sticky="w")
+        self.tab_gui_btn_toggle_null_render.grid(row=0, column=1, sticky="w", padx=(0, 5))
         
-        ico_reset = ctk.CTkImage(light_image=Image.open("resources\\images\\reset_d.png"), size=(16, 16))
+        ico_reset = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "reset_d.png")), size=(16, 16))
         self.tab_gui_btn_reset_zoom = ctk.CTkButton(
             self.tab_gui_controls,
             text="Reset View",
@@ -230,9 +231,9 @@ class MainUI:
             hover_color="#4C98D6",
             command=self.reset_zoom
         )
-        self.tab_gui_btn_reset_zoom.grid(row=0, column=2, padx=10)
+        self.tab_gui_btn_reset_zoom.grid(row=0, column=2, padx=5)
 
-        ico_stars = ctk.CTkImage(light_image=Image.open("resources\\images\\stars_d.png"), size=(16, 16))
+        ico_stars = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "stars_d.png")), size=(16, 16))
         self.tab_gui_btn_enrich_hops = ctk.CTkButton(
             self.tab_gui_controls,
             text="Enrich Hops",
@@ -277,8 +278,6 @@ class MainUI:
         self.tab_cli_btn_clear.pack(side="left")
         
         self.show_tb_gui()
-        
-        self.root_window.after(50, lambda: self.import_trace_file("results/google.ca/tr_google.ca_07242025-075108.json"))
 
 
     def run(self) -> None:
