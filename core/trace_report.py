@@ -21,4 +21,4 @@ def conv_json(target: str, node_list: list[str]):
     json.dump(output, f, indent=2)
 
   logging.info("[+] converted to:".ljust(35) + f"{ab_file}")
-  return output
+  return ab_file

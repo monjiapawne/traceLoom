@@ -66,6 +66,4 @@ def run_traceroute(
       print(node)
 
   if json_output:
-    jsondata = trace_report.conv_json(target, node_list)
-    print(json.dumps(jsondata, indent=2))
-    
+    return trace_report.conv_json(target, node_list)    

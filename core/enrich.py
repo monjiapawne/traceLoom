@@ -77,7 +77,7 @@ def find_mac_address(node_list: list[Node]) -> list[Node]:
 
     broadcast_packet = target_hardware_address / target_ip_address
     ans, unans = scapy.srp(broadcast_packet, timeout=0.05, verbose=0)
-    if not ans:
+    if not ans or (ans[0][1]).src == src_mac_address:
       node.mac_address = "LAYER 3"
       break
     src_mac_address = (ans[0][1]).src
