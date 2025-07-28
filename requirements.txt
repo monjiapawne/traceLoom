@@ -1,0 +1,7 @@
+customtkinter==5.2.2
+python-nmap==0.7.1
+rich==14.0.0
+scapy==2.6.1
+pillow==11.3.0
+
+#pyinstaller --onefile --noconsole `  --icon=resources\ico\app_icon.ico `  --add-data "resources\images;resources\images" `  gui.py --name traceLoom_0.13
