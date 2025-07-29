@@ -6,6 +6,7 @@ import shutil
 from rich.logging import RichHandler
 from dataclasses import dataclass
 from core import trace_route, enrich, trace_report, enrich_nmap
+from core.node import Node
 
 @dataclass
 class Cfg:
@@ -13,6 +14,22 @@ class Cfg:
   max_hops: int = 40
   timeout: float = 0.02
   logging_level: str = "INFO"
+
+
+def enrich_nodes(node_list, *, dns=False, mac=False, ports=False, os=False, all=False, return_nodes=False):
+    from core.node import Node
+    node_objs = [n if isinstance(n, Node) else Node(**n) for n in node_list]
+
+    if dns or all:
+        node_objs = enrich.reverse_dns_lookup(node_objs)
+    if mac or all:
+        node_objs = enrich.find_mac_address(node_objs)
+    if ports or all:
+        node_objs = enrich.scan_ports(node_objs)
+    if os or all:
+        node_objs = enrich_nmap.get_os_info(node_objs)
+
+    return node_objs if return_nodes else [n.to_dict() for n in node_objs]
 
 
 def run_traceroute(
@@ -51,19 +68,11 @@ def run_traceroute(
     logging.error(f"Trace route failed to {cfg.target}")
     sys.exit(1)
   
-  #  Enrichments
-  if dns or all:
-    node_list = enrich.reverse_dns_lookup(node_list)
-  if mac or all:
-    node_list = enrich.find_mac_address(node_list)
-  if ports or all:
-    node_list = enrich.scan_ports(node_list)
-  if os or all:
-    node_list = enrich_nmap.get_os_info(node_list)
+  node_list = enrich_nodes(node_list, dns=dns, mac=mac, ports=ports, os=os, all=all, return_nodes=True)
   
   if not nocli:
     for node in node_list:
       print(node)
 
   if json_output:
-    return trace_report.conv_json(target, node_list)    
+    return trace_report.conv_json(target, node_list)

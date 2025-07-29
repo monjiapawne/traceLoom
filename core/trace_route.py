@@ -49,8 +49,8 @@ def run_traceroute(
       ttl += 1
 
     duration = time.time() - start
-    logging.warning(" [ ] traceroute complete:".ljust(35) + f"{duration:.2f} s")
-    logging.warning(" [ ] ICMP responses:".ljust(35) + f"{count}")
+    logging.info(" [+] traceroute complete:".ljust(35) + f"{duration:.2f} s")
+    logging.info(" [+] ICMP responses:".ljust(35) + f"{count}")
     return route
 
   else:

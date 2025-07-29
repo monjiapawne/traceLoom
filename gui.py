@@ -1,13 +1,12 @@
 import customtkinter as ctk
 import tkinter as tk
 from PIL import Image
-import os
 from tkinter import font as tkfont
 from tkinter import filedialog
 import logging
 import json
-import os
-from controller import run_traceroute
+import os, sys
+from controller import run_traceroute, enrich_nodes
 
 ctk.set_appearance_mode("dark")
 
@@ -24,13 +23,24 @@ class GuiLogHandler(logging.Handler):
             0, lambda: self.gui_instance.cli_print(log_entry, level)
         )
 
+def resource_path(relative_path):
+  # Handle PyInstaller paths
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 
 class MainUI:
     CONFIG = {
         "base_radius": 15,
-        "min_spacing": 60,
-        "font_scale_main": 1,
-        "font_scale_label": 1,
+        "min_spacing": 120,
+        "font_scale_main": 1.2,
+        "font_scale_label": 1.5,
+        "main_y_spacing": 8,
+        "text_y_spacing": 8,
         "line_color": "#888888",
         "background_color": "#2b2b2b",
         "font_family": "Arial",
@@ -73,6 +83,9 @@ class MainUI:
         self.root_window.geometry(f"{self.width}x{self.height}")
         self.root_window.minsize(610, 400)
         
+
+        self.set_window_icon()
+
         self.current_trace_path = None
         self.nulls_enabled = True
 
@@ -127,13 +140,13 @@ class MainUI:
         self.sidebar_ent_target_value = ctk.CTkEntry(self.sidebar_frame_root, placeholder_text="1.2.3.4")
         self.sidebar_ent_target_value.pack(anchor="w", pady=(0, 5))
 
-        ico_star_1 = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "rocket_d.png")), size=(16, 16))
+        ico_star_1 = ctk.CTkImage(light_image=Image.open(resource_path("resources/images/rocket_d.png")),size=(16, 16))
         self.sidebar_btn_run_trace = ctk.CTkButton(
             self.sidebar_frame_options,
             image=ico_star_1,
             compound='left',
             text="traceroute",
-            command=self.run_traceroute,
+            command=self.threaded_run_traceroute,
             width=120,
             height=30,
             corner_radius=20,
@@ -150,11 +163,11 @@ class MainUI:
         self.main_frame_tabnav = ctk.CTkFrame(self.main_frame_root, fg_color="transparent")
         self.main_frame_tabnav.pack(fill="x")
 
-        self.main_btn_tab_gui = ctk.CTkButton(self.main_frame_tabnav, text="GUI", command=self.show_tb_gui,
+        self.main_btn_tab_gui = ctk.CTkButton(self.main_frame_tabnav, text="Visual", command=self.show_tb_gui,
                                               width=80, height=10, corner_radius=0, fg_color="#3B8ED0", hover_color="#2D6897")
         self.main_btn_tab_gui.pack(side="left")
 
-        self.main_btn_tab_cli = ctk.CTkButton(self.main_frame_tabnav, text="CLI", command=self.show_tb_cli,
+        self.main_btn_tab_cli = ctk.CTkButton(self.main_frame_tabnav, text="Logs", command=self.show_tb_cli,
                                               width=80, height=10, corner_radius=0,
                                               fg_color="#1E5079", text_color="#8C8F91", hover_color="#2D6897")
         self.main_btn_tab_cli.pack(side="left")
@@ -180,6 +193,20 @@ class MainUI:
         self.tab_gui_frame.grid_rowconfigure(1, weight=0)
         self.tab_gui_frame.grid_columnconfigure(0, weight=1)
         
+        # Transparent overlay container
+        self.tab_gui_overlay = ctk.CTkFrame(self.tab_gui_frame, fg_color="transparent")
+        self.tab_gui_overlay.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Transparent label inside overlay
+        self.loading_label = ctk.CTkLabel(
+            self.tab_gui_overlay,
+            text="Loading...",
+            text_color="#00ffff",
+            fg_color=self.THEME["background"]
+        )
+        self.loading_label.pack()
+        self.tab_gui_overlay.lower()
+        
         self.selected_hops = set()
         self.hop_oval_map = {}
         self.hop_data = {}
@@ -190,61 +217,62 @@ class MainUI:
         self.tab_gui_controls.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
 
         self.tab_gui_controls.grid_columnconfigure(0, weight=1)
-        self.tab_gui_controls.grid_columnconfigure(1, weight=1)
-        self.tab_gui_controls.grid_columnconfigure(2, weight=1)
-        self.tab_gui_controls.grid_columnconfigure(3, weight=1)
+        self.tab_gui_controls.grid_columnconfigure(1, weight=0)
+        self.tab_gui_controls.grid_columnconfigure(2, weight=0)
+        self.tab_gui_controls.grid_columnconfigure(3, weight=0)
+        self.tab_gui_controls.grid_columnconfigure(4, weight=0)
         
-        ico_import_json = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "arrow_d.png")), size=(16, 16))
+        ico_import_json = ctk.CTkImage(light_image=Image.open(resource_path("resources/images/arrow_d.png")), size=(16, 16))
         self.tab_gui_btn_import_json = ctk.CTkButton(
             self.tab_gui_controls,
             text="Import JSON",
             compound="left",
             image=ico_import_json,
-            width=100,
+            width=90,
             height=15,
             hover_color="#4C98D6",
             command=lambda: self.import_trace_file()
         )
-        self.tab_gui_btn_import_json.grid(row=0, column=0, sticky="w", padx=(0, 5))
+        self.tab_gui_btn_import_json.grid(row=0, column=1, sticky="e", padx=(5, 0))
         
-        ico_eye = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "eye_d.png")), size=(16, 16))
+        ico_eye = ctk.CTkImage(light_image=Image.open(resource_path("resources/images/eye_d.png")), size=(16, 16))
         self.tab_gui_btn_toggle_null_render = ctk.CTkButton(
             self.tab_gui_controls,
             text="Hide *",
             compound="left",
             image=ico_eye,
-            width=100,
+            width=90,
             height=15,
             hover_color="#4C98D6",
             command=self.hide_null_hops
         )
-        self.tab_gui_btn_toggle_null_render.grid(row=0, column=1, sticky="w", padx=(0, 5))
+        self.tab_gui_btn_toggle_null_render.grid(row=0, column=2, sticky="e", padx=(5, 0))
         
-        ico_reset = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "reset_d.png")), size=(16, 16))
+        ico_reset = ctk.CTkImage(light_image=Image.open(resource_path("resources/images/reset_d.png")), size=(16, 16))
         self.tab_gui_btn_reset_zoom = ctk.CTkButton(
             self.tab_gui_controls,
             text="Reset View",
             image=ico_reset,
             compound='left',
-            width=100,
+            width=90,
             height=15,
             hover_color="#4C98D6",
             command=self.reset_zoom
         )
-        self.tab_gui_btn_reset_zoom.grid(row=0, column=2, padx=5)
+        self.tab_gui_btn_reset_zoom.grid(row=0, column=3, sticky="e", padx=(5, 0))
 
-        ico_stars = ctk.CTkImage(light_image=Image.open(os.path.join("resources", "images", "stars_d.png")), size=(16, 16))
+        ico_stars = ctk.CTkImage(light_image=Image.open(resource_path("resources/images/stars_d.png")), size=(16, 16))
         self.tab_gui_btn_enrich_hops = ctk.CTkButton(
             self.tab_gui_controls,
             text="Enrich Hops",
             image=ico_stars,
             compound="left",
-            width=100,
+            width=90,
             height=15,
             hover_color="#4C98D6",
-            command=lambda: self.enrich_selected_hops()
+            command=self.threaded_enrich_selected_hops
         )
-        self.tab_gui_btn_enrich_hops.grid(row=0, column=3, sticky="e")
+        self.tab_gui_btn_enrich_hops.grid(row=0, column=4, sticky="e", padx=(5, 0))
 
         self.tab_cli_frame = ctk.CTkFrame(self.main_frame_tabcontainer, fg_color="#2b2b2b", corner_radius=0)
 
@@ -265,6 +293,9 @@ class MainUI:
    ▐█▌ ▐█ █▌▐█  ▐▌▐███▌▐█▄▄▌▐█▌▐▌▐█▌ ▐▌▐█▌ ▐▌██ ██▌▐█▌
    ▀▀▀  ▀  ▀ ▀  ▀  ▀▀▀  ▀▀▀  ▀▀▀  ▀▀▀▀  ▀▀▀▀ ▀▀    ▀▀▀\n""")
         self.tab_cli_txt_output.configure(state="disabled")
+        
+        self.tab_cli_txt_output.bind("<Control-c>", self.allow_copy)
+        self.tab_cli_txt_output.bind("<Command-c>", self.allow_copy)
 
         self.tab_cli_controls = ctk.CTkFrame(self.tab_cli_frame, fg_color="transparent")
         self.tab_cli_controls.pack(pady=(0, 5), anchor="e", padx=(0, 5))
@@ -297,6 +328,41 @@ class MainUI:
         self.main_btn_tab_cli.configure(fg_color="#3B8ED0", text_color="#FFFFFF")
         self.main_btn_tab_gui.configure(fg_color="#1E5079", text_color="#8C8F91")
 
+    def show_loading(self, text="Loading..."):
+        self.loading_label.configure(text=text)
+        self.tab_gui_overlay.lift()
+        self.tab_gui_overlay.update()
+
+    def hide_loading(self):
+        self.tab_gui_overlay.lower()
+
+    def threaded_run_traceroute(self):
+        import threading
+        self.show_loading("Running traceroute...")
+        thread = threading.Thread(target=self._run_traceroute_wrapper)
+        thread.start()
+
+    def _run_traceroute_wrapper(self):
+        try:
+            self.run_traceroute()
+        finally:
+            self.root_window.after(0, self.hide_loading)
+
+    def threaded_enrich_selected_hops(self):
+        self.show_loading("Enriching hops...")
+        self.root_window.after(50, self._start_enrich_thread)
+
+    def _start_enrich_thread(self):
+        import threading
+        thread = threading.Thread(target=self._enrich_selected_wrapper)
+        thread.start()
+
+    def _enrich_selected_wrapper(self):
+        try:
+            self.enrich_selected_hops()
+        finally:
+            self.root_window.after(0, self.hide_loading)
+
     def cli_print(self, text: str, level: str = "INFO"):
         self.tab_cli_txt_output.configure(state="normal")
         self.tab_cli_txt_output.insert("end", f"{text}\n", level.upper())
@@ -308,9 +374,28 @@ class MainUI:
         self.tab_cli_txt_output.delete("1.0", "end")
         self.tab_cli_txt_output.configure(state="disabled")
 
+    def allow_copy(self, *_):
+        try:
+            selection = self.tab_cli_txt_output.selection_get()
+            self.root_window.clipboard_clear()
+            self.root_window.clipboard_append(selection)
+        except tk.TclError:
+            pass  # no selection
+
+    def set_window_icon(self):
+        if sys.platform.startswith("win"):
+            icon_path = resource_path("resources/ico/app_icon.ico")
+            if os.path.exists(icon_path):
+                self.root_window.iconbitmap(icon_path)
+        else:
+            icon_path = resource_path("resources/ico/app_icon.png")
+            if os.path.exists(icon_path):
+                img = tk.PhotoImage(file=icon_path)
+                self.root_window.iconphoto(True, img)
+
     def setup_logging(self):
         gui_handler = GuiLogHandler(self)
-        formatter = logging.Formatter('%(message)s')
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
         gui_handler.setFormatter(formatter)
         logging.getLogger().addHandler(gui_handler)
         log_level = self.sidebar_cb_logging_level.get().upper()
@@ -335,19 +420,22 @@ class MainUI:
         os_en = self.sidebar_chk_os.get()
         log_level = self.sidebar_cb_logging_level.get()
         target = self.sidebar_ent_target_value.get()
-        self.cli_print(f"─────── traceroute started to {target} ───────────")
-        trace_json = run_traceroute(
-            target=target,
-            logging_level=log_level,
-            dns=dns_en,
-            mac=mac_en,
-            ports=ports_en,
-            os=os_en
-        )
-        if trace_json:
-          self.import_trace_file(file_path=trace_json)
+        if target:
+          self.cli_print(f"─────── traceroute started to {target} ───────────")
+          trace_json = run_traceroute(
+              target=target,
+              logging_level=log_level,
+              dns=dns_en,
+              mac=mac_en,
+              ports=ports_en,
+              os=os_en
+          )
+          if trace_json:
+            self.import_trace_file(file_path=trace_json)
+        else:
+          print('Please enter a target')
         
-    def import_trace_file(self, file_path=None, nulls_enabled:bool = True):
+    def import_trace_file(self, file_path=None, nulls_enabled: bool = True):
         import os
         import json
         from tkinter import filedialog
@@ -355,16 +443,22 @@ class MainUI:
         if not file_path:
             file_path = filedialog.askopenfilename(
                 title="Select a trace JSON file",
-                initialdir=os.getcwd(),
+                initialdir=os.path.join(os.getcwd(), 'results'),
                 filetypes=[("JSON files", "*.json")]
             )
             if not file_path:
-                return  # User cancelled
+                return
 
         try:
             with open(file_path, "r") as f:
                 trace_sample = json.load(f)
             self.current_trace_path = file_path
+            self.nulls_enabled = nulls_enabled
+
+            # 🔧 Clear stale state before drawing new trace
+            self.hop_data.clear()
+            self.selected_hops.clear()
+
             self.draw_trace_from_json(trace_sample, nulls_enabled)
             print(f"[INFO] Imported trace file: {file_path}")
         except Exception as e:
@@ -391,15 +485,52 @@ class MainUI:
         if not self.selected_hops:
             self.cli_print("[ENRICH] No hops selected.", "WARNING")
             return
+
         self.cli_print("────── Enriching Selected Hops ──────")
+
+        dns_en = self.sidebar_chk_enrich_dns.get()
+        mac_en = self.sidebar_chk_enrich_mac.get()
+        ports_en = self.sidebar_chk_enrich_ports.get()
+        os_en = self.sidebar_chk_os.get()
+
+        nodes_to_enrich = []
+        hop_to_ip = {}
+
         for hop_id in sorted(self.selected_hops):
-            hop = self.hop_data.get(hop_id)
-            if not hop:
-                continue
-            ip = hop["ip"]
-            if ip != "*":
-                self.cli_print(f"[ENRICH] Targeting IP: {ip}", "INFO")
-                print(f"[ENRICH] Targeting IP: {ip}", "INFO")
+            hop = self.hop_data.get(hop_id, {})
+            ip = hop.get("ip")
+            if ip and ip != "*":
+                hop_to_ip[ip] = hop_id
+                nodes_to_enrich.append({"ip": ip, **{k: hop.get(k) for k in ["latency", "mac_address", "dns", "ports", "os"]}})
+
+        enriched = enrich_nodes(nodes_to_enrich, dns=dns_en, mac=mac_en, ports=ports_en, os=os_en)
+
+        for node in enriched:
+            hop_id = hop_to_ip.get(node["ip"])
+            if hop_id:
+                self.hop_data[hop_id].update({k: v for k, v in node.items() if k in ["mac_address", "dns", "ports", "os"] and v is not None})
+
+        if not self.current_trace_path:
+            logging.warning("No trace path found; skipping auto-save.")
+            return
+
+        try:
+            with open(self.current_trace_path, "r") as f:
+                trace = json.load(f)
+
+            for i, (_, data) in enumerate(self.hop_data.items(), 1):
+                node = trace["nodes"].get(str(i), {})
+                node.update({k: data.get(k, node.get(k)) for k in ["ip", "latency", "mac_address", "dns", "ports", "os"]})
+                trace["nodes"][str(i)] = node
+
+            with open(self.current_trace_path, "w") as f:
+                json.dump(trace, f, indent=2)
+
+            logging.info(f'Enriched trace auto-saved to {self.current_trace_path}')
+            self.draw_trace_from_json(trace, self.nulls_enabled)
+
+        except Exception as e:
+            self.cli_print(f"[ERROR] Failed to auto-save or redraw trace: {e}", "ERROR")
 
     def draw_circle_with_text(self, canvas, x, y, r, hop_num, ip, details):
         style = self.get_hop_style(ip, details)
@@ -416,11 +547,11 @@ class MainUI:
         ip_text_id = canvas.create_text(x + r + 10, y, text=ip, anchor="w",
                                         fill=style["ip"], font=font_main)
         item_ids.append(ip_text_id)
-        detail_y = y + int(15 * size)
+        detail_y = y + int(15 * size) + self.CONFIG["main_y_spacing"]
         for key, value in details.items():
-            canvas.create_text(x + r + 10, detail_y, text=f"{key}: {value}",
+            canvas.create_text(x + r, detail_y, text=f"{key}: {value}",
                                anchor="w", fill=style["detail"], font=font_label)
-            detail_y += int(13 * size)
+            detail_y += int(13 * size) + self.CONFIG["text_y_spacing"]
         return item_ids, oval_id
 
     def draw_trace_from_json(self, trace_data, nulls_enabled):
@@ -496,7 +627,6 @@ class MainUI:
                     else:
                         self.selected_hops.add(hop_id)
                         canvas.itemconfig(oval_id, outline=self.THEME["outline_selected"], width=4)
-                    print(f"[SELECTED]: {sorted(self.selected_hops)}")
                 return toggle
 
             toggle_callback = make_toggle_callback(hop_id, oval_id)

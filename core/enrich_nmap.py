@@ -1,7 +1,17 @@
 import logging
 import time
+import subprocess
+import sys
 from core.node import Node
 
+if sys.platform.startswith("win"):
+  class HiddenPopen(subprocess.Popen):
+    def __init__(self, *args, **kwargs):
+      si = subprocess.STARTUPINFO()
+      si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+      kwargs["startupinfo"] = si
+      super().__init__(*args, **kwargs)
+  subprocess.Popen = HiddenPopen
 
 def get_os_info(node_list: list[Node], verbose: bool = False) -> list[Node]:
   """

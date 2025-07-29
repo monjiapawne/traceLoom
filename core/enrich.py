@@ -17,26 +17,29 @@ def create_node_list(ip_list):
 
 # Helper functions
 def nslookup(ip: str) -> str | None:
-  if not shutil.which("nslookup"):
-    raise RuntimeError("Missing command :nslookup")
+    if not shutil.which("nslookup"):
+        raise RuntimeError("Missing command: nslookup")
 
-  try:
-    result = subprocess.run(
-        ["nslookup", ip],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        timeout=0.5,
-    )
-    output = result.stdout.lower().splitlines()
-    for line in output:
-      if "name:" in line:  # Windows
-        return line.split(":", 1)[1].strip()
-      if "name =" in line:  # Linux
-        return line.split("=", 1)[1].strip()
-  except Exception as e:
-    logging.error(f"nslookup error: {e}")
-  return None
+    CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform.startswith("win") else 0
+
+    try:
+        result = subprocess.run(
+            ["nslookup", ip],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=0.5,
+            creationflags=CREATE_NO_WINDOW
+        )
+        output = result.stdout.lower().splitlines()
+        for line in output:
+            if "name:" in line:
+                return line.split(":", 1)[1].strip()
+            if "name =" in line:
+                return line.split("=", 1)[1].strip()
+    except Exception as e:
+        logging.error(f"nslookup error: {e}")
+    return None
 
 
 # Core enrichment functions
@@ -61,14 +64,14 @@ def reverse_dns_lookup(node_list: list[Node]) -> list[Node]:
       node.dns = None
 
   duration = time.time() - start
-  logging.warning(" [ ] DNS Responses:".ljust(35) + f"{count}")
-  logging.warning(" [ ] reverse_dns_lookup complete: ".ljust(
+  logging.info(" [+] DNS Responses:".ljust(35) + f"{count}")
+  logging.info(" [+] reverse_dns_lookup complete: ".ljust(
       35) + f"{duration:.2f} s")
   return node_list
 
 
 def find_mac_address(node_list: list[Node]) -> list[Node]:
-  logging.info("[-] running find_mac_ address")
+  logging.info("[-] running find_mac_address")
   start = time.time()
   src_mac_address = ""
   for node in node_list:
@@ -83,7 +86,7 @@ def find_mac_address(node_list: list[Node]) -> list[Node]:
     src_mac_address = (ans[0][1]).src
     node.mac_address = src_mac_address
   duration = time.time() - start
-  logging.warning(" [ ] find_mac_address complete:".ljust(
+  logging.info(" [+] find_mac_address complete:".ljust(
       35) + f"{duration:.2f} s")
   return node_list
 
@@ -119,6 +122,6 @@ def scan_ports(node_list: list[Node]) -> list[Node]:
 
       node.ports = replies
   duration = time.time() - start
-  logging.warning(" [ ] Open Ports:".ljust(35) + f"{open_port_counter}")
-  logging.warning(" [ ] port scan complete: ".ljust(35) + f"{duration:.2f} s")
+  logging.info(" [+] Open Ports:".ljust(35) + f"{open_port_counter}")
+  logging.info(" [+] port scan complete: ".ljust(35) + f"{duration:.2f} s")
   return node_list
