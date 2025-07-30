@@ -11,7 +11,10 @@
 - DNS Records  
 - OS (via Nmap)
 
-## Usage
+## CLI Usage
 ```bash
 ./traceLoom -t <target>
 ```
+
+or via the fully featured GUI.  
+[Compiled releases](https://github.com/monjiapawne/traceLoom/releases)
