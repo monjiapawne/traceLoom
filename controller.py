@@ -16,7 +16,7 @@ class Cfg:
   logging_level: str = "INFO"
 
 
-def enrich_nodes(node_list, *, dns=False, mac=False, ports=False, os=False, all=False, return_nodes=False):
+def enrich_nodes(node_list, *, dns=False, mac=False, tports=False, uports=False, os=False, all=False, return_nodes=False):
     from core.node import Node
     node_objs = [n if isinstance(n, Node) else Node(**n) for n in node_list]
 
@@ -24,8 +24,10 @@ def enrich_nodes(node_list, *, dns=False, mac=False, ports=False, os=False, all=
         node_objs = enrich.reverse_dns_lookup(node_objs)
     if mac or all:
         node_objs = enrich.find_mac_address(node_objs)
-    if ports or all:
-        node_objs = enrich.scan_ports(node_objs)
+    if tports or all:
+        node_objs = enrich.scan_ports_tcp(node_objs)
+    if uports or all:
+      node_objs = enrich.scan_ports_udp(node_objs)
     if os or all:
         node_objs = enrich_nmap.get_os_info(node_objs)
 
@@ -38,7 +40,8 @@ def run_traceroute(
   target: str,
   dns: bool = False,
   mac: bool = False,
-  ports: bool = False,
+  tports: bool = False,
+  uports: bool = False,
   all: bool = False,
   os: bool = False, #nmap
   nocli: bool = False,
@@ -68,7 +71,7 @@ def run_traceroute(
     logging.error(f"Trace route failed to {cfg.target}")
     sys.exit(1)
   
-  node_list = enrich_nodes(node_list, dns=dns, mac=mac, ports=ports, os=os, all=all, return_nodes=True)
+  node_list = enrich_nodes(node_list, dns=dns, mac=mac, tports=tports, uports=uports, os=os, all=all, return_nodes=True)
   
   if not nocli:
     for node in node_list:

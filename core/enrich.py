@@ -91,11 +91,10 @@ def find_mac_address(node_list: list[Node]) -> list[Node]:
   return node_list
 
 
-def scan_ports(node_list: list[Node]) -> list[Node]:
-  logging.info("[-] scanning ports")
-  my_ip = scapy.get_if_addr(scapy.conf.iface)
-
+def scan_ports_tcp(node_list: list[Node]) -> list[Node]:
   PORTS = {22: "SSH", 23: "TELNET", 53: "DNS", 80: "HTTP", 443: "HTTPS"}
+  logging.info("[-] scanning ports [TCP]")
+  my_ip = scapy.get_if_addr(scapy.conf.iface)
 
   open_port_counter = 0
   start = time.time()
@@ -120,8 +119,43 @@ def scan_ports(node_list: list[Node]) -> list[Node]:
             else:
               replies.update({port: "closed"})
 
-      node.ports = replies
+      node.ports = node.ports | replies
+      
   duration = time.time() - start
   logging.info(" [+] Open Ports:".ljust(35) + f"{open_port_counter}")
   logging.info(" [+] port scan complete: ".ljust(35) + f"{duration:.2f} s")
   return node_list
+
+def scan_ports_udp(node_list: list[Node]) -> list[Node]:
+  PORTS = {53: "DNS", 67: "DHCP", 68: "DHCP", 123: "NTP"}
+  logging.info("[-] scanning ports [UDP]")
+  my_ip = scapy.get_if_addr(scapy.conf.iface)
+
+  start = time.time()
+  for node in node_list:
+    if node.ip:
+      replies = {}
+      destination_ip = node.ip
+      ip_layer = scapy.IP(src=my_ip, dst=destination_ip)
+      for port in PORTS:
+        udp_layer = scapy.UDP(sport=12345, dport=port)
+        response = scapy.sr1(ip_layer / udp_layer,
+                             timeout=0.05,
+                             verbose=0)
+        if response is None:
+          replies.update({port: "open | filtered"})
+        else:
+          if response.haslayer(scapy.ICMP):
+            replies.update({port: "closed"})
+          elif response.haslayer(scapy.UDP):
+            replies.update({port: "open"})
+          else:
+            replies.update({port: "filtered"})
+
+    node.ports = node.ports | replies
+
+  duration = time.time() - start
+  logging.info(" [+] port scan complete: ".ljust(35) + f"{duration:.2f} s")
+  return node_list
+
+my_node_list = [Node(ip='192.168.1.254', latency='0.5')]

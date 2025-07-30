@@ -18,8 +18,10 @@ def parse_args():
                       help="toggle dns lookups")
   parser.add_argument("--mac", action="store_true",
                       help="toggle mac scanning")
-  parser.add_argument("--ports", action="store_true",
-                      help="toggle port scannning")
+  parser.add_argument("--tports", action="store_true",
+                      help="toggle TCP port scannning")
+  parser.add_argument("--uports", action="store_true",
+                      help="toggle UDP port scannning")
   parser.add_argument("--os", action="store_true",
                       help="toggle os scannning (requries nmap)")
   parser.add_argument("--all", action="store_true",
@@ -52,7 +54,8 @@ def main():
       logging_level=args.logging,
       dns=args.dns,
       mac=args.mac,
-      ports=args.ports,
+      tports=args.tports,
+      uports=args.uports,
       os=args.os,
       all=args.all,
       nocli=args.nocli,
